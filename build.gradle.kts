@@ -40,5 +40,9 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.50.1")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
 
+    // dotenv library
+    implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
+
+
 
 }
