@@ -1,5 +1,6 @@
-package com.example.database.tables
+package com.example.database
 
+import com.example.database.tables.Momentos
 import io.github.cdimascio.dotenv.dotenv
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils

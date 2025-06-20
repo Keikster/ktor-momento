@@ -6,6 +6,7 @@ import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
+import com.example.database.DatabaseFactory
 
 fun main(args: Array<String>) {
     io.ktor.server.netty.EngineMain.main(args)
