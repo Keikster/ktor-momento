@@ -1,9 +1,7 @@
-package com.example
+package com.example.service
 
 import com.example.database.tables.Momentos
 import com.example.model.MomentoDto
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 
@@ -27,7 +25,7 @@ class MomentoRepository {
     }
 
     fun getById(id: Int): MomentoDto? = transaction {
-        Momentos.select { Momentos.id eq id }.map {
+        Momentos.selectAll().where { Momentos.id eq id }.map {
             MomentoDto(
                 id = it[Momentos.id].value,
                 fullName = it[Momentos.fullName],

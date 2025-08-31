@@ -1,6 +1,6 @@
 package com.example.di
 
-import com.example.MomentoRepository
+import com.example.service.MomentoRepository
 import com.example.service.MomentoService
 import org.koin.dsl.module
 

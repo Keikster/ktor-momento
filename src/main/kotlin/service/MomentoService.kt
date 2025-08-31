@@ -1,6 +1,6 @@
 package com.example.service
 
-import com.example.MomentoRepository
+import com.example.service.MomentoRepository
 import com.example.database.tables.Momentos
 import com.example.model.CreateMomentoRequest
 import com.example.model.MomentoDto
