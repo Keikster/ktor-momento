@@ -13,10 +13,9 @@ import kotlinx.coroutines.withContext
 import org.koin.ktor.ext.get
 import service.TokenService
 import repository.UserRepository
+import java.util.UUID
 
 fun Application.configureJwt(): TokenService {
-    val usersRepo: UserRepository = get()
-
     val cfg = environment.config
     val issuer  = cfg.property("jwt.issuer").getString()
     val audience = cfg.property("jwt.audience").getString()
@@ -38,20 +37,24 @@ fun Application.configureJwt(): TokenService {
             validate { cred ->
                 val sub = cred.payload.subject ?: return@validate null
                 val email = cred.payload.getClaim("email")?.asString() ?: return@validate null
-                val userId = runCatching { java.util.UUID.fromString(sub) }.getOrNull() ?: return@validate null
-                auth.AuthUserPrincipal(userId = userId, email = email)
+                val userId = runCatching { UUID.fromString(sub) }.getOrNull() ?: return@validate null
+                AuthUserPrincipal(userId = userId, email = email)
             }
             challenge { _, _ -> call.respond(HttpStatusCode.Unauthorized) }
         }
     }
 
-    // Return your concrete TokenService (opaque refresh + JWT access)
+    // Return the TokenService; look up email via repo during refresh rotation
     return TokenService(
         jwtIssuer = issuer,
         jwtAudience = audience,
         jwtSecret = secret,
         accessTtlSeconds = accessTtlSeconds,
         refreshTtlSeconds = refreshTtlSeconds,
-        getEmail = { id -> withContext(Dispatchers.IO) { usersRepo.findById(id)?.email } }
+        getEmail = { id ->
+            withContext(Dispatchers.IO) {
+                UserRepository.selectById(id)?.email   // <-- use selectById, not findById
+            }
+        }
     )
 }

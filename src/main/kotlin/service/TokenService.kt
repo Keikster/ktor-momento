@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import io.ktor.util.hex
+import security.PasswordHasher
 import java.util.Date
 import java.util.UUID
 
@@ -45,7 +46,7 @@ class TokenService(
         // Opaque refresh (random) + server-side hash
         val jti = UUID.randomUUID().toString().replace("-", "")
         val refreshPlain = generateOpaqueRefresh()
-        val refreshHash = com.example.security.PasswordHasher.hash(refreshPlain.toCharArray())
+        val refreshHash = PasswordHasher.hash(refreshPlain.toCharArray())
 
         withContext(Dispatchers.IO) {
             RefreshTokenRepository.insert(
@@ -80,7 +81,7 @@ class TokenService(
         val nowSec = Clock.System.now().epochSeconds
         if (row.revoked || row.expiresAt <= nowSec) return null
 
-        val ok = com.example.security.PasswordHasher.verify(secret.toCharArray(), row.tokenHash)
+        val ok = PasswordHasher.verify(secret.toCharArray(), row.tokenHash)
         java.util.Arrays.fill(secret.toCharArray(), '\u0000') // clear sensitive data
         if (!ok) return null
 

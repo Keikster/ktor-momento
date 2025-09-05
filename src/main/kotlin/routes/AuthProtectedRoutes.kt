@@ -11,6 +11,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
+
 fun Route.authProtectedRoutes(userService: UserService) {
     authenticate("auth-jwt") {
         post("/api/auth/change-password") {
@@ -18,8 +19,12 @@ fun Route.authProtectedRoutes(userService: UserService) {
                 ?: return@post call.respond(HttpStatusCode.Unauthorized, MessageResponse("No principal"))
 
             val req = call.receive<ChangePasswordRequest>()
-            val msg = userService.changePassword(p.userId, req)
-            call.respond(HttpStatusCode.OK, msg)
+
+            // ✅ pass strings, not the whole request object
+            val ok = userService.changePassword(p.userId, req.oldPassword, req.newPassword)
+
+            if (!ok) call.respond(HttpStatusCode.Unauthorized, MessageResponse("Old password incorrect"))
+            else     call.respond(HttpStatusCode.OK, MessageResponse("Password changed"))
         }
     }
 }

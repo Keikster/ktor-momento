@@ -1,7 +1,6 @@
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
-import org.gradle.internal.DisplayName
 import java.util.UUID
 
 @Serializable
@@ -39,11 +38,3 @@ data class MessageResponse(val message: String)
 
 @Serializable
 data class ChangePasswordRequest(val oldPassword: String, val newPassword: String)
-
-@Serializable
-data class UserPublic(
-    @Contextual val id: UUID,
-    val email: String,
-    val createdAt: Instant,
-    val displayName: DisplayName
-)

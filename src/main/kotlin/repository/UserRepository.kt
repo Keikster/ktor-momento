@@ -1,15 +1,19 @@
 // ========================= repository/UserRepository.kt =========================
 package repository
 
+
 import database.DatabaseFactory
 import database.tables.Users
-import com.example.security.PasswordHasher
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.SqlExpressionBuilder
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.select            // ★ brings in the DSL 'select { }'
 import org.jetbrains.exposed.sql.update
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq   // ★ brings in 'eq'
+import org.jetbrains.exposed.sql.selectAll
+import security.PasswordHasher                     // ★ use your security package
 import java.util.Arrays
 import java.util.UUID
 
@@ -31,7 +35,7 @@ object UserRepository {
     suspend fun findByEmail(email: String): UserRow? = DatabaseFactory.dbQuery {
         val normalized = email.trim().lowercase()
         Users
-            .select { Users.email eq normalized }
+            .selectAll().where { Users.email eq normalized }
             .limit(1)
             .singleOrNull()
             ?.toUserRow()
@@ -39,7 +43,7 @@ object UserRepository {
 
     suspend fun selectById(userId: UUID): UserRow? = DatabaseFactory.dbQuery {
         Users
-            .select { Users.id eq userId }
+            .selectAll().where { Users.id eq userId }
             .limit(1)
             .singleOrNull()
             ?.toUserRow()
@@ -61,7 +65,7 @@ object UserRepository {
 
         // Friendly pre-check (you should also have a unique index at DB level)
         val exists = Users
-            .select { Users.email eq normalized }
+            .selectAll().where { Users.email eq normalized }
             .limit(1)
             .any()
         require(!exists) { "Email already in use" }
@@ -83,7 +87,7 @@ object UserRepository {
         }
 
         Users
-            .select { Users.id eq id }
+            .selectAll().where { Users.id eq id }
             .limit(1)
             .single()
             .toUserRow()

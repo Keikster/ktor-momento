@@ -23,12 +23,12 @@ class UserService(
         require(lastName.isNotBlank()) { "Last name required" }
 
         val row = repo.insert(email, password.toCharArray(), firstName.trim(), lastName.trim())
-        return tokens.newTokenPair(row.id, device, ipHash)
+        return tokens.newTokenPair(row.id, row.email, device, ipHash)
     }
 
     suspend fun login(email: String, password: String, device: String?, ipHash: String?): TokenPairResponse? {
         val row = repo.authenticate(email, password.toCharArray()) ?: return null
-        return tokens.newTokenPair(row.id, device, ipHash)
+        return tokens.newTokenPair(row.id, row.email, device, ipHash)
     }
 
     suspend fun getById(id: UUID): UserPublic? =

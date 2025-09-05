@@ -1,44 +1,50 @@
+// security/JwtConfig.kt
 package security
 
+import auth.AuthUserPrincipal
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
-import service.TokenService // <- use your service TokenService
+import io.ktor.server.response.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.koin.ktor.ext.get
+import repository.UserRepository
+import service.TokenService
+import java.util.UUID
 
-/**
- * Installs JWT authentication and returns a TokenService for minting tokens.
- *
- * HOCON config (application.conf / application-dev.conf):
- *
- * jwt {
- *   issuer = "http://localhost:8080"
- *   audience = "momento-clients-dev"
- *   secret = ${?JWT_SECRET}       # e.g. $env:JWT_SECRET="dev-secret"
- * }
- */
 fun Application.configureJwt(): TokenService {
-    val issuer   = environment.config.property("jwt.issuer").getString()
-    val audience = environment.config.property("jwt.audience").getString()
-    val secret   = environment.config.property("jwt.secret").getString()
+    // Pull the repo from Koin so we can look up the email during refresh rotation
+    val usersRepo: UserRepository = get()
+
+    val cfg = environment.config
+    val issuer  = cfg.property("jwt.issuer").getString()
+    val audience = cfg.property("jwt.audience").getString()
+    val secret  = cfg.property("jwt.secret").getString()
+    val accessTtlSeconds  = cfg.propertyOrNull("jwt.accessTtlSeconds")?.getString()?.toLong() ?: 15L * 60L
+    val refreshTtlSeconds = cfg.propertyOrNull("jwt.refreshTtlSeconds")?.getString()?.toLong() ?: 30L * 24L * 3600L
 
     val algorithm = Algorithm.HMAC256(secret)
 
     install(Authentication) {
         jwt("auth-jwt") {
+            realm = "momento"
             verifier(
-                JWT
-                    .require(algorithm)
+                JWT.require(algorithm)
                     .withIssuer(issuer)
                     .withAudience(audience)
                     .build()
             )
-            // Access tokens minted by TokenService include "uid" claim (user id)
             validate { cred ->
-                val uid = cred.payload.getClaim("uid")?.asString()
-                if (!uid.isNullOrBlank()) JWTPrincipal(cred.payload) else null
+                val sub = cred.payload.subject ?: return@validate null
+                val email = cred.payload.getClaim("email")?.asString() ?: return@validate null
+                val userId = runCatching { UUID.fromString(sub) }.getOrNull() ?: return@validate null
+                AuthUserPrincipal(userId = userId, email = email)
             }
+            challenge { _, _ -> call.respond(HttpStatusCode.Unauthorized) }
         }
     }
 
@@ -47,6 +53,8 @@ fun Application.configureJwt(): TokenService {
         jwtIssuer = issuer,
         jwtAudience = audience,
         jwtSecret = secret,
-        getEmail =
+        accessTtlSeconds = accessTtlSeconds,
+        refreshTtlSeconds = refreshTtlSeconds,
+        getEmail = { id -> withContext(Dispatchers.IO) { usersRepo.selectById(id)?.email } }
     )
 }
