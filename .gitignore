@@ -34,3 +34,9 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Secrets / Keys (DO NOT COMMIT) ###
+KEYS/
+*.pem
+*.key
+.env
