@@ -40,3 +40,4 @@ KEYS/
 *.pem
 *.key
 .env
+*.json

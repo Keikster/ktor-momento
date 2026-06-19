@@ -38,3 +38,6 @@ data class MessageResponse(val message: String)
 
 @Serializable
 data class ChangePasswordRequest(val oldPassword: String, val newPassword: String)
+
+@kotlinx.serialization.Serializable
+data class FirebaseTokenRequest(val idToken: String)

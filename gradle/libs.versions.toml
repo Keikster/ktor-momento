@@ -10,6 +10,7 @@ kotlinx-datetime = "0.5.0"
 dotenv = "6.4.1"
 auth0-jwt = "4.5.0"
 jwks-rsa = "0.22.1"
+firebase-admin = "9.2.0"
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -28,6 +29,7 @@ ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx
 ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
 ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }
 ktor-server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt", version.ref = "ktor" }
+firebase-admin = { module = "com.google.firebase:firebase-admin", version.ref = "firebase-admin" }
 
 # Database (Exposed BOM manages versions)
 exposed-bom = { module = "org.jetbrains.exposed:exposed-bom", version.ref = "exposed" }

@@ -1,36 +1,30 @@
-// ========================= repository/UserRepository.kt =========================
 package repository
-
 
 import database.DatabaseFactory
 import database.tables.Users
+import database.tables.Users.passwordHash
 import kotlinx.datetime.Instant
-import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.SqlExpressionBuilder
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select            // ★ brings in the DSL 'select { }'
-import org.jetbrains.exposed.sql.update
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq   // ★ brings in 'eq'
 import org.jetbrains.exposed.sql.selectAll
-import security.PasswordHasher                     // ★ use your security package
+import org.jetbrains.exposed.sql.update
 import java.util.Arrays
 import java.util.UUID
 
 data class UserRow(
     val id: UUID,
     val email: String,
-    val passwordHash: String,
-    val createdAt: Instant,   // Exposed Kotlinx Instant
+    val passwordHash: String?,
+    val createdAt: Instant,
     val firstName: String,
-    val lastName: String
+    val lastName: String,
+    val firebaseUid: String? = null
 ) {
     val displayName: String get() = "$firstName $lastName".trim()
 }
 
 object UserRepository {
-
-    // ---------- Reads ----------
 
     suspend fun findByEmail(email: String): UserRow? = DatabaseFactory.dbQuery {
         val normalized = email.trim().lowercase()
@@ -49,12 +43,14 @@ object UserRepository {
             ?.toUserRow()
     }
 
-    // ---------- Writes ----------
+    suspend fun findByFirebaseUid(firebaseUid: String): UserRow? = DatabaseFactory.dbQuery {
+        Users
+            .selectAll().where { Users.firebaseUid eq firebaseUid }
+            .limit(1)
+            .singleOrNull()
+            ?.toUserRow()
+    }
 
-    /**
-     * Insert a new user. Hashes the password and clears the provided CharArray.
-     * Returns the full row read back from DB (so createdAt is accurate).
-     */
     suspend fun insert(
         email: String,
         passwordPlain: CharArray,
@@ -63,7 +59,6 @@ object UserRepository {
     ): UserRow = DatabaseFactory.dbQuery {
         val normalized = email.trim().lowercase()
 
-        // Friendly pre-check (you should also have a unique index at DB level)
         val exists = Users
             .selectAll().where { Users.email eq normalized }
             .limit(1)
@@ -83,7 +78,6 @@ object UserRepository {
             it[Users.passwordHash] = phc
             it[Users.firstName] = firstName.trim()
             it[Users.lastName] = lastName.trim()
-            // createdAt uses DB default (now())
         }
 
         Users
@@ -102,30 +96,59 @@ object UserRepository {
         Users.update({ Users.id eq userId }) { it[passwordHash] = phc }
     }
 
-    // ---------- Auth helper ----------
+    suspend fun insertFirebaseUser(email: String, firebaseUid: String): UserRow = DatabaseFactory.dbQuery {
+        val normalized = email.trim().lowercase()
 
-    /**
-     * Verify a plaintext password for the given email.
-     * Returns the UserRow on success, or null on failure.
-     */
+        val existing = Users.selectAll().where { Users.email eq normalized }.limit(1).singleOrNull()
+        if (existing != null) {
+            val row = existing.toUserRow()
+            if (row.firebaseUid == null) {
+                Users.update({ Users.id eq row.id }) { it[Users.firebaseUid] = firebaseUid }
+                return@dbQuery Users.selectAll().where { Users.id eq row.id }.limit(1).single().toUserRow()
+            }
+            return@dbQuery row
+        }
+
+        val id = UUID.randomUUID()
+
+        Users.insert {
+            it[Users.id] = id
+            it[Users.email] = normalized
+            it[Users.passwordHash] = null
+            it[Users.firstName] = "Momento"
+            it[Users.lastName] = "User"
+            it[Users.firebaseUid] = firebaseUid
+        }
+
+        Users.selectAll().where { Users.id eq id }.limit(1).single().toUserRow()
+    }
+
+    suspend fun attachFirebaseUid(userId: UUID, firebaseUid: String): Int = DatabaseFactory.dbQuery {
+        Users.update({ Users.id eq userId }) {
+            it[Users.firebaseUid] = firebaseUid
+        }
+    }
+
     suspend fun authenticate(email: String, plainPassword: CharArray): UserRow? {
         val user = findByEmail(email) ?: return null
+        val hash = user.passwordHash ?: return null
+
         val verified = try {
-            security.PasswordHasher.verify(plainPassword, user.passwordHash)
+            security.PasswordHasher.verify(plainPassword, hash)
         } finally {
             Arrays.fill(plainPassword, '\u0000')
         }
+
         return if (verified) user else null
     }
-
-    // ---------- Mapping ----------
 
     private fun ResultRow.toUserRow() = UserRow(
         id = this[Users.id],
         email = this[Users.email],
         passwordHash = this[Users.passwordHash],
-        createdAt = this[Users.createdAt],          // kotlinx.datetime.Instant
+        createdAt = this[Users.createdAt],
         firstName = this[Users.firstName],
-        lastName = this[Users.lastName]
+        lastName = this[Users.lastName],
+        firebaseUid = this[Users.firebaseUid]
     )
 }

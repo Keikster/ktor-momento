@@ -15,6 +15,7 @@ import io.ktor.server.routing.*
 
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
+import plugins.configureFirebaseAdmin
 
 
 fun main(args: Array<String>) {
@@ -40,8 +41,13 @@ fun Application.module() {
     // 6) Services
     val userService = UserService(tokens = tokenService)
 
-    // 7) Routes
+    // 7) FireBase
+    configureFirebaseAdmin()
+
+    // 8) Routes
     configureRouting(tokenService, userService)
+
+
 
 }
 
@@ -55,3 +61,4 @@ fun Application.configureRouting(
         userRoutes(userService)               // /api/me, /api/users/{id}
     }
 }
+

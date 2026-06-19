@@ -1,11 +1,13 @@
 package routes
 
 import ChangePasswordRequest
+import FirebaseTokenRequest
 import LoginRequest
 import MessageResponse
 import RefreshRequest
 import RegisterRequest
 import auth.AuthUserPrincipal
+import com.google.firebase.auth.FirebaseAuth
 import service.UserService
 import io.ktor.http.*
 import io.ktor.server.application.ApplicationCall
@@ -64,6 +66,36 @@ fun Route.authRoutes(
                 call.respond(HttpStatusCode.Unauthorized, MessageResponse("Invalid credentials"))
             } else {
                 call.respond(HttpStatusCode.OK, tokens)
+            }
+        }
+
+        post("/firebase") {
+            val req = call.receive<FirebaseTokenRequest>()
+            val device = call.request.headers["X-Device"] ?: "unknown"
+            val ipHash = call.clientIpHash()
+
+            try {
+                // Verify the Firebase ID token (requires Firebase Admin SDK initialized)
+                val decoded = FirebaseAuth.getInstance().verifyIdToken(req.idToken)
+
+                val firebaseUid = decoded.uid
+                val email = decoded.email ?: return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    MessageResponse("Firebase token missing email")
+                )
+
+                val tokens = userService.loginWithFirebase(
+                    firebaseUid = firebaseUid,
+                    email = email,
+                    device = device,
+                    ipHash = ipHash
+                )
+
+                call.respond(HttpStatusCode.OK, tokens)
+
+            } catch (e: Exception) {
+                // Token invalid, expired, wrong project, admin not initialized, etc.
+                call.respond(HttpStatusCode.Unauthorized, MessageResponse("Invalid Firebase token"))
             }
         }
 
