@@ -1,0 +1,11 @@
+POST http://127.0.0.1:8000/api/momentos
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+
+{
+  "fullName": "Grandma Rose",
+  "birthDate": "1932-08-17",
+  "deathDate": "2021-03-04",
+  "bio": "A life filled with warmth, laughter, and family.",
+  "coverPhotoUrl": null
+}

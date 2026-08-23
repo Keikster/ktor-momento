@@ -16,6 +16,7 @@ import io.ktor.server.routing.*
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
 import plugins.configureFirebaseAdmin
+import routes.momentoRoutes
 
 
 fun main(args: Array<String>) {
@@ -59,6 +60,8 @@ fun Application.configureRouting(
     routing {
         authRoutes(tokenService, userService) // /api/auth/*
         userRoutes(userService)               // /api/me, /api/users/{id}
+        momentoRoutes()
+
     }
 }
 

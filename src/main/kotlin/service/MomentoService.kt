@@ -1,14 +1,11 @@
 package com.example.service
 
-import com.example.service.MomentoRepository
 import com.example.database.tables.Momentos
-import com.example.model.CreateMomentoRequest
+import model.CreateMomentoRequest
 import com.example.model.MomentoDto
 import org.jetbrains.exposed.sql.insertAndGetId
 import org.jetbrains.exposed.sql.transactions.transaction
-import java.time.LocalDate
 import kotlinx.datetime.LocalDate as KxLocalDate
-import kotlinx.datetime.toLocalDate
 
 class MomentoService(private val repo: MomentoRepository) {
 
